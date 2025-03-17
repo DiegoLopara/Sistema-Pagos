@@ -6,23 +6,23 @@ import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
-@Entity
-@Table(name = "payments")
+@Entity // Indica que esta clase es una entidad JPA
+@Table(name = "payments") // Especifica el nombre de la tabla
 public class Payment {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Id // Indica que este campo es la clave primaria
+    @GeneratedValue(strategy = GenerationType.IDENTITY)  // Genera automáticamente el ID
     private Long id;
 
-    @Column(name = "card_number", nullable = false)
+    @Column(name = "card_number", nullable = false) // Columna para el número de tarjeta
     private String cardNumber;
 
-    @Column(name = "amount", nullable = false)
+    @Column(name = "amount", nullable = false) // Columna para la cantidad de dinero
     private BigDecimal amount;
 
-    @Column(name = "payment_date", nullable = false)
+    @Column(name = "payment_date", nullable = false) // Columna para la fecha
     private LocalDate paymentDate;
 
-    @Column(name = "description")
+    @Column(name = "description") // Columna para la descripción
     private String description;
 
     public Payment(Long id, String cardNumber, BigDecimal amount, LocalDate paymentDate, String description) {
