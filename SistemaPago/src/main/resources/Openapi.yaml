@@ -1,0 +1,59 @@
+openapi: 3.0.3
+info:
+  title: Payment Management API
+  description: API for managing credit card payments
+  version: 1.0.0
+servers:
+  - url: http://localhost:8080/api/
+paths:
+  /payments:
+    post:
+      summary: Registrar un nuevo pago
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                cardNumber:
+                  type: string
+                  example: "1234567812345678"
+                amount:
+                  type: number
+                  format: float
+                  example: 100.00
+                paymentDate:
+                  type: string
+                  format: date
+                  example: "2023-10-01"
+                description:
+                  type: string
+                  example: "Payment for order #1234"
+      responses:
+        '201':
+          description: Payment registered successfully
+    get:
+      summary: Recoger una lista de pagos
+      responses:
+        '200':
+          description: Lista de pagos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                    cardNumber:
+                      type: string
+                    amount:
+                      type: number
+                      format: float
+                    paymentDate:
+                      type: string
+                      format: date
+                    description:
+                      type: string
