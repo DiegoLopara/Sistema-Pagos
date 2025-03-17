@@ -7,10 +7,10 @@ import java.time.LocalDate;
 
 
 public class PaymentDTO {
-    private String cardNumber;
-    private BigDecimal amount;
-    private LocalDate paymentDate;
-    private String description;
+    private String cardNumber; // Número de tarjeta
+    private BigDecimal amount; // Monto del pago
+    private LocalDate paymentDate; // Fecha del pago
+    private String description; // Descripción del pago
 
     public PaymentDTO(String cardNumber, BigDecimal amount, LocalDate paymentDate, String description) {
         this.cardNumber = cardNumber;

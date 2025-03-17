@@ -4,10 +4,10 @@ import com.SistemaPago.SistemaPago.dto.PaymentDTO;
 import com.SistemaPago.SistemaPago.model.Payment;
 import org.springframework.stereotype.Component;
 
-@Component
+@Component // Marcamos esta clase como un componente de Spring
 public class PaymentMapper {
 
-    public Payment toEntity(PaymentDTO paymentDTO) {
+    public Payment toEntity(PaymentDTO paymentDTO) { // Convierte un DTO a una entidad
         Payment payment = new Payment();
         payment.setCardNumber(paymentDTO.getCardNumber());
         payment.setAmount(paymentDTO.getAmount());
@@ -16,7 +16,7 @@ public class PaymentMapper {
         return payment;
     }
 
-    public PaymentDTO toDTO(Payment payment) {
+    public PaymentDTO toDTO(Payment payment) { // Convierte una entidad a un DTO
         PaymentDTO paymentDTO = new PaymentDTO();
         paymentDTO.setCardNumber(payment.getCardNumber());
         paymentDTO.setAmount(payment.getAmount());
