@@ -25,6 +25,10 @@ message PaymentResponse {
     string description = 4; // Descripción del pago
 }
 
+message PaymentListResponse {
+    repeated PaymentResponse payments = 1;
+}
+
 // Mensaje vacío para solicitudes que no requieren datos
 message Empty {}
 
@@ -34,5 +38,5 @@ service PaymentServiceGrpc {
     rpc RegisterPayment (PaymentRequest) returns (PaymentResponse);
 
     // RPC para obtener todos los pagos, recibe un mensaje vacío y devuelve un flujo de PaymentResponse
-    rpc GetAllPayments (Empty) returns (stream PaymentResponse);
+    rpc GetAllPayments (Empty) returns (PaymentListResponse);
 }

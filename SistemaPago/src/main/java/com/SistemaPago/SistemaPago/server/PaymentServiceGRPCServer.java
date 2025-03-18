@@ -2,10 +2,7 @@ package com.SistemaPago.SistemaPago.server;
 
 import com.SistemaPago.SistemaPago.dto.PaymentDTO;
 import com.SistemaPago.SistemaPago.exception.PaymentException;
-import com.SistemaPago.SistemaPago.grpc.Empty;
-import com.SistemaPago.SistemaPago.grpc.PaymentRequest;
-import com.SistemaPago.SistemaPago.grpc.PaymentResponse;
-import com.SistemaPago.SistemaPago.grpc.PaymentServiceGrpcGrpc;
+import com.SistemaPago.SistemaPago.grpc.*;
 import com.SistemaPago.SistemaPago.mapper.PaymentMapper;
 import com.SistemaPago.SistemaPago.model.Payment;
 import com.SistemaPago.SistemaPago.service.PaymentService;
@@ -44,9 +41,9 @@ public class PaymentServiceGRPCServer extends PaymentServiceGrpcGrpc.PaymentServ
     }
 
     @Override
-    public void getAllPayments(Empty request, StreamObserver<PaymentResponse> responseObserver) {
-        List<PaymentDTO> paymentDTOs = paymentService.getAllPayments();
-        paymentDTOs.forEach(paymentDTO -> responseObserver.onNext(paymentMapper.toResponse(paymentDTO)));
+    public void getAllPayments(Empty request, StreamObserver<PaymentListResponse> responseObserver) { // Cambia PaymentResponse a PaymentListResponse
+        PaymentListResponse payments = paymentService.getAllPayments();
+        responseObserver.onNext(payments);
         responseObserver.onCompleted();
     }
 

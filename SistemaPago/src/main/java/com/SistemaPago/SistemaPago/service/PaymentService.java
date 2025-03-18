@@ -2,19 +2,28 @@ package com.SistemaPago.SistemaPago.service;
 
 import com.SistemaPago.SistemaPago.dto.PaymentDTO;
 import com.SistemaPago.SistemaPago.exception.PaymentException;
+import com.SistemaPago.SistemaPago.grpc.PaymentListResponse;
+import com.SistemaPago.SistemaPago.grpc.PaymentResponse;
 import com.SistemaPago.SistemaPago.mapper.PaymentMapper;
 import com.SistemaPago.SistemaPago.model.Payment;
 import com.SistemaPago.SistemaPago.repository.PaymentRepository;
 import com.SistemaPago.SistemaPago.validations.CardValidator;
 import com.SistemaPago.SistemaPago.validations.Validations;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 @Service // Marcamos esta clase como servicio
 public class PaymentService {
+
+    private static final Logger logger = LoggerFactory.getLogger(PaymentService.class);
+
 
     @Autowired
     private PaymentRepository paymentRepository;
@@ -40,14 +49,31 @@ public class PaymentService {
         }
     }
 
-    public List<PaymentDTO> getAllPayments() {
+    public PaymentListResponse getAllPayments() {
         try {
-            return paymentRepository.findAll().stream()
+            logger.info("Recuperando todos los pagos de la base de datos.");
+
+            List<Payment> payments = StreamSupport.stream(paymentRepository.findAll().spliterator(), false)
+                    .collect(Collectors.toList());
+
+            List<PaymentDTO> paymentDTOs = payments.stream()
                     .map(paymentMapper::toDTO)
                     .collect(Collectors.toList());
+
+            List<PaymentResponse> paymentResponses = paymentDTOs.stream()
+                    .map(paymentMapper::toResponse)
+                    .collect(Collectors.toList());
+
+            logger.info("Se recuperaron {} pagos.", paymentResponses.size());
+
+            return PaymentListResponse.newBuilder()
+                    .addAllPayments(paymentResponses)
+                    .build();
+        } catch (DataAccessException e) {
+            logger.error("Error al acceder a la base de datos: {}", e.getMessage());
+            throw new PaymentException("Error al recuperar todos los pagos", e);
         } catch (Exception e) {
-            System.err.println("Error al recuperar todos los pagos en PaymentService: " + e.getMessage());
-            e.printStackTrace();
+            logger.error("Error general al recuperar todos los pagos: {}", e.getMessage());
             throw new PaymentException("Error al recuperar todos los pagos", e);
         }
     }

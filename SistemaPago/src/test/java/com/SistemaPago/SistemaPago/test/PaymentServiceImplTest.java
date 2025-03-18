@@ -3,6 +3,7 @@ package com.SistemaPago.SistemaPago.test;
 import com.SistemaPago.SistemaPago.dto.PaymentDTO;
 import com.SistemaPago.SistemaPago.exception.PaymentException;
 import com.SistemaPago.SistemaPago.grpc.Empty;
+import com.SistemaPago.SistemaPago.grpc.PaymentListResponse;
 import com.SistemaPago.SistemaPago.grpc.PaymentRequest;
 import com.SistemaPago.SistemaPago.grpc.PaymentResponse;
 import com.SistemaPago.SistemaPago.mapper.PaymentMapper;
@@ -24,19 +25,23 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static org.mockito.Mockito.*;
 
 public class PaymentServiceImplTest {
 
     @InjectMocks
-    private PaymentServiceGRPCServer paymentServiceGRPCServer; // Inyecta PaymentServiceGRPCServer
+    private PaymentServiceGRPCServer paymentServiceGRPCServer;
 
     @Mock
     private PaymentService paymentService;
 
     @Mock
     private PaymentMapper paymentMapper;
+
+    @Mock
+    private StreamObserver<PaymentListResponse> responseObserverList; // Cambiado a PaymentListResponse
 
     @Mock
     private StreamObserver<PaymentResponse> responseObserver;
@@ -53,12 +58,11 @@ public class PaymentServiceImplTest {
         Payment payment = createPayment();
         PaymentResponse expectedResponse = createPaymentResponse();
 
-        when(paymentMapper.toEntity(paymentDTO)).thenReturn(payment);
+        when(paymentMapper.toDTO(request)).thenReturn(paymentDTO);
         when(paymentService.registerPayment(paymentDTO)).thenReturn(paymentDTO);
-        when(paymentMapper.toDTO(payment)).thenReturn(paymentDTO);
-        when(paymentMapper.toDTO(payment)).thenReturn(paymentDTO);
+        when(paymentMapper.toResponse(paymentDTO)).thenReturn(expectedResponse);
 
-        paymentServiceGRPCServer.registerPayment(request, responseObserver); // Llama a paymentServiceGRPCServer
+        paymentServiceGRPCServer.registerPayment(request, responseObserver);
 
         verify(responseObserver).onNext(expectedResponse);
         verify(responseObserver).onCompleted();
@@ -67,10 +71,12 @@ public class PaymentServiceImplTest {
     @Test
     public void testRegisterPaymentPaymentException() {
         PaymentRequest request = createPaymentRequest();
+        PaymentDTO paymentDTO = createPaymentDTO();
         PaymentException exception = new PaymentException("Prefijo de tarjeta inválido.");
-        doThrow(exception).when(paymentService).registerPayment(any());
+        when(paymentMapper.toDTO(request)).thenReturn(paymentDTO);
+        doThrow(exception).when(paymentService).registerPayment(paymentDTO);
 
-        paymentServiceGRPCServer.registerPayment(request, responseObserver); // Llama a paymentServiceGRPCServer
+        paymentServiceGRPCServer.registerPayment(request, responseObserver);
 
         verify(responseObserver).onError(argThat(e ->
                 e instanceof StatusRuntimeException &&
@@ -82,9 +88,11 @@ public class PaymentServiceImplTest {
     @Test
     public void testRegisterPaymentGeneralException() {
         PaymentRequest request = createPaymentRequest();
-        when(paymentService.registerPayment(any())).thenThrow(new RuntimeException("General Exception"));
+        PaymentDTO paymentDTO = createPaymentDTO();
+        when(paymentMapper.toDTO(request)).thenReturn(paymentDTO);
+        when(paymentService.registerPayment(paymentDTO)).thenThrow(new RuntimeException("General Exception"));
 
-        paymentServiceGRPCServer.registerPayment(request, responseObserver); // Llama a paymentServiceGRPCServer
+        paymentServiceGRPCServer.registerPayment(request, responseObserver);
 
         verify(responseObserver).onError(argThat(e ->
                 e instanceof StatusRuntimeException &&
@@ -97,13 +105,19 @@ public class PaymentServiceImplTest {
     public void testGetAllPaymentsSuccess() {
         Empty request = Empty.newBuilder().build();
         List<PaymentDTO> paymentDTOs = Arrays.asList(createPaymentDTO(), createPaymentDTO());
+        List<PaymentResponse> paymentResponses = paymentDTOs.stream()
+                .map(paymentMapper::toResponse)
+                .collect(Collectors.toList());
+        PaymentListResponse expectedResponse = PaymentListResponse.newBuilder()
+                .addAllPayments(paymentResponses)
+                .build();
 
-        when(paymentService.getAllPayments()).thenReturn(paymentDTOs);
+        when(paymentService.getAllPayments()).thenReturn(expectedResponse);
 
-        paymentServiceGRPCServer.getAllPayments(request, responseObserver); // Llama a paymentServiceGRPCServer
+        paymentServiceGRPCServer.getAllPayments(request, responseObserverList);
 
-        verify(responseObserver, times(2)).onNext(any(PaymentResponse.class));
-        verify(responseObserver).onCompleted();
+        verify(responseObserverList).onNext(expectedResponse);
+        verify(responseObserverList).onCompleted();
     }
 
     @Test
@@ -111,9 +125,9 @@ public class PaymentServiceImplTest {
         Empty request = Empty.newBuilder().build();
         when(paymentService.getAllPayments()).thenThrow(new PaymentException("Test Exception"));
 
-        paymentServiceGRPCServer.getAllPayments(request, responseObserver); // Llama a paymentServiceGRPCServer
+        paymentServiceGRPCServer.getAllPayments(request, responseObserverList);
 
-        verify(responseObserver).onError(argThat(e ->
+        verify(responseObserverList).onError(argThat(e ->
                 e instanceof StatusRuntimeException &&
                         ((StatusRuntimeException) e).getStatus().getCode() == Status.INTERNAL.getCode() &&
                         ((StatusRuntimeException) e).getStatus().getDescription().equals("Error al obtener los pagos."))
