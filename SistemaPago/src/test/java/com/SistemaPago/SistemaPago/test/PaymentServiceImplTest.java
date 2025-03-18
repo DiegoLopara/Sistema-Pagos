@@ -50,7 +50,7 @@ public class PaymentServiceImplTest {
 
     @Test
     public void testRegisterPaymentSuccess() {
-        // Arrange
+
         PaymentRequest request = createPaymentRequest();
         PaymentDTO paymentDTO = createPaymentDTO();
         Payment payment = createPayment();
@@ -60,12 +60,12 @@ public class PaymentServiceImplTest {
         when(paymentService.registerPayment(paymentDTO)).thenReturn(paymentDTO);
         when(paymentMapper.toDTO(payment)).thenReturn(paymentDTO);
         when(paymentMapper.toDTO(payment)).thenReturn(paymentDTO);
-        when(paymentService.registerPayment(any())).thenReturn(paymentDTO); // Asegúrate de que esto esté configur ado correctamente.
+        when(paymentService.registerPayment(any())).thenReturn(paymentDTO);
 
-        // Act
+
         paymentServiceImpl.registerPayment(request, responseObserver);
 
-        // Assert
+
         verify(responseObserver).onNext(expectedResponse);
         verify(responseObserver).onCompleted();
     }
@@ -73,7 +73,7 @@ public class PaymentServiceImplTest {
     @Test
     public void testRegisterPaymentPaymentException() {
         PaymentRequest request = createPaymentRequest();
-        PaymentException exception = new PaymentException("Prefijo de tarjeta inválido."); // Use the correct message
+        PaymentException exception = new PaymentException("Prefijo de tarjeta inválido.");
         doThrow(exception).when(paymentService).registerPayment(any());
 
         paymentServiceImpl.registerPayment(request, responseObserver);
