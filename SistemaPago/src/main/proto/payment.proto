@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "com.SistemaPago.SistemaPago.grpc";
+option java_outer_classname = "PaymentServiceProto";
+
+package payments;
+
+import "google/protobuf/timestamp.proto";
+
+message PaymentRequest {
+    string cardNumber = 1;
+    double amount = 2;
+    google.protobuf.Timestamp paymentDate = 3;
+    string description = 4;
+}
+
+message PaymentResponse {
+    string cardNumber = 1;
+    double amount = 2;
+    google.protobuf.Timestamp paymentDate = 3;
+    string description = 4;
+}
+
+message Empty {}
+
+service PaymentServiceGrpc {
+    rpc RegisterPayment (PaymentRequest) returns (PaymentResponse);
+    rpc GetAllPayments (Empty) returns (stream PaymentResponse);
+}

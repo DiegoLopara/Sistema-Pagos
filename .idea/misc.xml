@@ -7,6 +7,15 @@
         <option value="$PROJECT_DIR$/SistemaPago/pom.xml" />
       </list>
     </option>
+    <option name="ignoredFiles">
+      <set>
+        <option value="$PROJECT_DIR$/SistemaPago/SistemaPago-proto/pom.xml" />
+        <option value="$PROJECT_DIR$/SistemaPago/SistemaPagoProto/pom.xml" />
+        <option value="$PROJECT_DIR$/SistemaPago/grpc-service/pom.xml" />
+        <option value="$PROJECT_DIR$/SistemaPago/paymentProto/pom.xml" />
+        <option value="$PROJECT_DIR$/SistemaPago/proto/pom.xml" />
+      </set>
+    </option>
   </component>
   <component name="ProjectRootManager" version="2" languageLevel="JDK_23" project-jdk-name="17" project-jdk-type="JavaSDK">
     <output url="file://$PROJECT_DIR$/out" />
