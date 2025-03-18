@@ -1,0 +1,42 @@
+syntax = "proto3"; // Especifica que estamos utilizando la versión 3 de Protobuf
+
+// Opciones para la generación de código Java
+option java_multiple_files = true; // Genera un archivo Java separado para cada mensaje y servicio
+option java_package = "com.SistemaPago.SistemaPago.grpc"; // Especifica el paquete Java para las clases generadas
+option java_outer_classname = "PaymentServiceProto"; // Especifica el nombre de la clase contenedora para las clases generadas
+
+package payments; // Define el paquete de este archivo Protobuf
+
+import "google/protobuf/timestamp.proto"; // Importa el tipo de mensaje Timestamp de Protobuf para manejar fechas y horas
+
+// Mensaje que representa una solicitud de pago
+message PaymentRequest {
+    string cardNumber = 1; // Número de tarjeta de crédito
+    double amount = 2; // Monto del pago
+    google.protobuf.Timestamp paymentDate = 3; // Fecha del pago
+    string description = 4; // Descripción del pago
+}
+
+// Mensaje que representa la respuesta de un pago
+message PaymentResponse {
+    string cardNumber = 1; // Número de tarjeta de crédito enmascarado
+    double amount = 2; // Monto del pago
+    google.protobuf.Timestamp paymentDate = 3; // Fecha del pago
+    string description = 4; // Descripción del pago
+}
+
+message PaymentListResponse {
+    repeated PaymentResponse payments = 1;
+}
+
+// Mensaje vacío para solicitudes que no requieren datos
+message Empty {}
+
+// Servicio que define las operaciones relacionadas con los pagos
+service PaymentServiceGrpc {
+    // RPC para registrar un pago, recibe un PaymentRequest y devuelve un PaymentResponse
+    rpc RegisterPayment (PaymentRequest) returns (PaymentResponse);
+
+    // RPC para obtener todos los pagos, recibe un mensaje vacío y devuelve un flujo de PaymentResponse
+    rpc GetAllPayments (Empty) returns (PaymentListResponse);
+}

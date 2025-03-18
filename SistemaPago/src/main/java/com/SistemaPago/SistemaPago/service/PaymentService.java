@@ -2,56 +2,79 @@ package com.SistemaPago.SistemaPago.service;
 
 import com.SistemaPago.SistemaPago.dto.PaymentDTO;
 import com.SistemaPago.SistemaPago.exception.PaymentException;
+import com.SistemaPago.SistemaPago.grpc.PaymentListResponse;
+import com.SistemaPago.SistemaPago.grpc.PaymentResponse;
 import com.SistemaPago.SistemaPago.mapper.PaymentMapper;
 import com.SistemaPago.SistemaPago.model.Payment;
 import com.SistemaPago.SistemaPago.repository.PaymentRepository;
+import com.SistemaPago.SistemaPago.validations.CardValidator;
+import com.SistemaPago.SistemaPago.validations.Validations;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 @Service // Marcamos esta clase como servicio
 public class PaymentService {
 
-    @Autowired // Inyectamos el repositorio
+    private static final Logger logger = LoggerFactory.getLogger(PaymentService.class);
+
+
+    @Autowired
     private PaymentRepository paymentRepository;
 
-    @Autowired // Inyectamos el mapper
+    @Autowired
     private PaymentMapper paymentMapper;
 
-    /**
-     * Registra un nuevo pago en el sistema.
-     *
-     * @param paymentDTO DTO que contiene los datos del pago a registrar.
-     * @return DTO pago registrado.
-     * @throws PaymentException Si ocurre algún error durante el registro.
-     */
     public PaymentDTO registerPayment(PaymentDTO paymentDTO) {
         try {
-            Payment payment = paymentMapper.toEntity(paymentDTO); // Convierte el DTO a una entidad
-            Payment savedPayment = paymentRepository.save(payment); // Guarda la entidad en la base de datos
-            return paymentMapper.toDTO(savedPayment); // Convierte la entidad guardada a un DTO y lo devuelve
+            Validations.validatePaymentRequest(paymentDTO);
+            CardValidator.validateCardNumber(paymentDTO.getCardNumber());
+            Payment payment = paymentMapper.toEntity(paymentDTO);
+            Payment savedPayment = paymentRepository.save(payment);
+            return paymentMapper.toDTO(savedPayment);
+        } catch (PaymentException e) {
+            System.err.println("PaymentException en PaymentService: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
         } catch (Exception e) {
-            throw new PaymentException("Error al registrar el pago", e); // Lanza una excepción personalizada si hay un error
+            System.err.println("Error general en PaymentService: " + e.getMessage());
+            e.printStackTrace();
+            throw new PaymentException("Error al registrar el pago", e);
         }
     }
 
-
-    /**
-     * Obtiene una lista de todos los pagos registrados en el sistema.
-     *
-     * @return Lista de DTOs de todos los pagos.
-     * @throws PaymentException Si ocurre algún error durante la recuperación de los pagos.
-     */
-    public List<PaymentDTO> getAllPayments() {
+    public PaymentListResponse getAllPayments() {
         try {
-            return paymentRepository.findAll().stream() // Obtiene todos los pagos de la base de datos
-                    .map(paymentMapper::toDTO) // Convierte cada entidad a un DTO
-                    .collect(Collectors.toList()); // Recolecta los DTOs en una lista
+            logger.info("Recuperando todos los pagos de la base de datos.");
+
+            List<Payment> payments = StreamSupport.stream(paymentRepository.findAll().spliterator(), false)
+                    .collect(Collectors.toList());
+
+            List<PaymentDTO> paymentDTOs = payments.stream()
+                    .map(paymentMapper::toDTO)
+                    .collect(Collectors.toList());
+
+            List<PaymentResponse> paymentResponses = paymentDTOs.stream()
+                    .map(paymentMapper::toResponse)
+                    .collect(Collectors.toList());
+
+            logger.info("Se recuperaron {} pagos.", paymentResponses.size());
+
+            return PaymentListResponse.newBuilder()
+                    .addAllPayments(paymentResponses)
+                    .build();
+        } catch (DataAccessException e) {
+            logger.error("Error al acceder a la base de datos: {}", e.getMessage());
+            throw new PaymentException("Error al recuperar todos los pagos", e);
         } catch (Exception e) {
-            throw new PaymentException("\n" +
-                    "Error al recuperar todos los pagos", e); // Lanza una excepción personalizada si hay un error
+            logger.error("Error general al recuperar todos los pagos: {}", e.getMessage());
+            throw new PaymentException("Error al recuperar todos los pagos", e);
         }
     }
 }

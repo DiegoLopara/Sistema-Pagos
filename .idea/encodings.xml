@@ -1,6 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="Encoding">
+    <file url="file://$PROJECT_DIR$/SistemaPago/SistemaPago-proto/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/SistemaPago/SistemaPagoProto/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/SistemaPago/grpc-service/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/SistemaPago/paymentProto/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/SistemaPago/proto/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/SistemaPago/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/SistemaPago/src/main/resources" charset="UTF-8" />
   </component>
 </project>

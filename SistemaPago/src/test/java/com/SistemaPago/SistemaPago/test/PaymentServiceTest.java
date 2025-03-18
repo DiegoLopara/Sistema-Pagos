@@ -2,6 +2,7 @@ package com.SistemaPago.SistemaPago.test;
 
 import com.SistemaPago.SistemaPago.dto.PaymentDTO;
 import com.SistemaPago.SistemaPago.exception.PaymentException;
+import com.SistemaPago.SistemaPago.grpc.PaymentListResponse;
 import com.SistemaPago.SistemaPago.mapper.PaymentMapper;
 import com.SistemaPago.SistemaPago.model.Payment;
 import com.SistemaPago.SistemaPago.repository.PaymentRepository;
@@ -68,7 +69,7 @@ public class PaymentServiceTest {
         when(paymentMapper.toDTO(payments.get(0))).thenReturn(paymentDTOs.get(0)); // Configuramos el comportamiento del mapper
         when(paymentMapper.toDTO(payments.get(1))).thenReturn(paymentDTOs.get(1)); // Configuramos el comportamiento del mapper
 
-        List<PaymentDTO> retrievedPayments = paymentService.getAllPayments(); // Ejecutamos el método a testear
+        PaymentListResponse retrievedPayments = paymentService.getAllPayments(); // Ejecutamos el método a testear
 
         assertEquals(paymentDTOs, retrievedPayments); // Verificamos que el resultado sea el esperado
     }
