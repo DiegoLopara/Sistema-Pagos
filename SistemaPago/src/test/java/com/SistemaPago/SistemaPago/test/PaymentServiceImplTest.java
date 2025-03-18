@@ -12,6 +12,8 @@ import com.SistemaPago.SistemaPago.service.PaymentServiceImpl;
 import com.SistemaPago.SistemaPago.validations.CardValidator;
 import com.SistemaPago.SistemaPago.validations.Validations;
 import com.google.protobuf.Timestamp;
+import io.grpc.Status;
+import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -48,30 +50,53 @@ public class PaymentServiceImplTest {
 
     @Test
     public void testRegisterPaymentSuccess() {
+        // Arrange
         PaymentRequest request = createPaymentRequest();
         PaymentDTO paymentDTO = createPaymentDTO();
         Payment payment = createPayment();
         PaymentResponse expectedResponse = createPaymentResponse();
 
-        CardValidator.validateCardNumber(request.getCardNumber()); // Validación de tarjeta
         when(paymentMapper.toEntity(paymentDTO)).thenReturn(payment);
         when(paymentService.registerPayment(paymentDTO)).thenReturn(paymentDTO);
         when(paymentMapper.toDTO(payment)).thenReturn(paymentDTO);
+        when(paymentMapper.toDTO(payment)).thenReturn(paymentDTO);
+        when(paymentService.registerPayment(any())).thenReturn(paymentDTO); // Asegúrate de que esto esté configur ado correctamente.
 
+        // Act
         paymentServiceImpl.registerPayment(request, responseObserver);
 
+        // Assert
         verify(responseObserver).onNext(expectedResponse);
         verify(responseObserver).onCompleted();
     }
 
     @Test
-    public void testRegisterPaymentFailure() {
+    public void testRegisterPaymentPaymentException() {
         PaymentRequest request = createPaymentRequest();
-        when(paymentService.registerPayment(any())).thenThrow(new PaymentException("Test Exception"));
+        PaymentException exception = new PaymentException("Prefijo de tarjeta inválido."); // Use the correct message
+        doThrow(exception).when(paymentService).registerPayment(any());
 
         paymentServiceImpl.registerPayment(request, responseObserver);
 
-        verify(responseObserver).onError(any(PaymentException.class));
+        verify(responseObserver).onError(argThat(e ->
+                e instanceof StatusRuntimeException &&
+                        ((StatusRuntimeException) e).getStatus().getCode() == Status.INVALID_ARGUMENT.getCode() &&
+                        ((StatusRuntimeException) e).getStatus().getDescription().equals("Prefijo de tarjeta inválido."))
+        );
+    }
+
+    @Test
+    public void testRegisterPaymentGeneralException() {
+        PaymentRequest request = createPaymentRequest();
+        when(paymentService.registerPayment(any())).thenThrow(new RuntimeException("General Exception"));
+
+        paymentServiceImpl.registerPayment(request, responseObserver);
+
+        verify(responseObserver).onError(argThat(e ->
+                e instanceof StatusRuntimeException &&
+                        ((StatusRuntimeException) e).getStatus().getCode() == Status.INTERNAL.getCode() &&
+                        ((StatusRuntimeException) e).getStatus().getDescription().equals("Error al registrar el pago."))
+        );
     }
 
     @Test
@@ -85,17 +110,22 @@ public class PaymentServiceImplTest {
 
         paymentServiceImpl.getAllPayments(request, responseObserver);
 
-        verify(responseObserver, times(2)).onNext(any(PaymentResponse.class)); // Expect 2 calls
+        verify(responseObserver, times(2)).onNext(any(PaymentResponse.class));
         verify(responseObserver).onCompleted();
     }
+
     @Test
-    public void testGetAllPaymentsFailure() {
+    public void testGetAllPaymentsPaymentException() {
         Empty request = Empty.newBuilder().build();
         when(paymentService.getAllPayments()).thenThrow(new PaymentException("Test Exception"));
 
         paymentServiceImpl.getAllPayments(request, responseObserver);
 
-        verify(responseObserver).onError(any(PaymentException.class));
+        verify(responseObserver).onError(argThat(e ->
+                e instanceof StatusRuntimeException &&
+                        ((StatusRuntimeException) e).getStatus().getCode() == Status.INTERNAL.getCode() &&
+                        ((StatusRuntimeException) e).getStatus().getDescription().equals("Error al obtener los pagos."))
+        );
     }
 
     private PaymentRequest createPaymentRequest() {
@@ -135,7 +165,7 @@ public class PaymentServiceImplTest {
                 .build();
 
         return PaymentResponse.newBuilder()
-                .setCardNumber("XXXXXXXXXXXX5678") // Use the correct masking
+                .setCardNumber("XXXXXXXXXXXX5678")
                 .setAmount(100.0)
                 .setPaymentDate(timestamp)
                 .setDescription("Test payment")

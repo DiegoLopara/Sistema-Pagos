@@ -11,6 +11,8 @@ import com.SistemaPago.SistemaPago.model.Payment;
 import com.SistemaPago.SistemaPago.validations.CardValidator;
 import com.SistemaPago.SistemaPago.validations.Validations;
 import com.google.protobuf.Timestamp;
+import io.grpc.Status;
+import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
 import net.devh.boot.grpc.server.service.GrpcService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,7 +36,7 @@ public class PaymentServiceImpl extends PaymentServiceGrpcGrpc.PaymentServiceGrp
     public void registerPayment(PaymentRequest request, StreamObserver<PaymentResponse> responseObserver) {
         try {
             Validations.validatePaymentRequest(request);
-            CardValidator.validateCardNumber(request.getCardNumber()); // Validación de tarjeta
+            CardValidator.validateCardNumber(request.getCardNumber());
 
             PaymentDTO paymentDTO = requestToPaymentDTO(request);
             Payment payment = paymentMapper.toEntity(paymentDTO);
@@ -43,10 +45,11 @@ public class PaymentServiceImpl extends PaymentServiceGrpcGrpc.PaymentServiceGrp
             responseObserver.onNext(paymentDtoToPaymentResponse(savedPayment));
             responseObserver.onCompleted();
         } catch (PaymentException e) {
-            responseObserver.onError(e);
+            responseObserver.onError(new StatusRuntimeException(Status.INVALID_ARGUMENT.withDescription(e.getMessage())));
+        } catch (Exception e) {
+            responseObserver.onError(new StatusRuntimeException(Status.INTERNAL.withDescription("Error al registrar el pago.")));
         }
     }
-
     @Override
     public void getAllPayments(Empty request, StreamObserver<PaymentResponse> responseObserver) {
         try {
@@ -54,7 +57,7 @@ public class PaymentServiceImpl extends PaymentServiceGrpcGrpc.PaymentServiceGrp
             paymentDTOs.forEach(paymentDTO -> responseObserver.onNext(paymentDtoToPaymentResponse(paymentDTO)));
             responseObserver.onCompleted();
         } catch (PaymentException e) {
-            responseObserver.onError(e);
+            responseObserver.onError(new StatusRuntimeException(Status.INTERNAL.withDescription("Error al obtener los pagos.")));
         }
     }
 
