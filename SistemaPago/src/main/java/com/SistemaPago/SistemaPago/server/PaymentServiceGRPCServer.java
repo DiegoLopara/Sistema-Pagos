@@ -1,4 +1,4 @@
-package com.SistemaPago.SistemaPago.service;
+package com.SistemaPago.SistemaPago.server;
 
 import com.SistemaPago.SistemaPago.dto.PaymentDTO;
 import com.SistemaPago.SistemaPago.exception.PaymentException;
@@ -8,8 +8,7 @@ import com.SistemaPago.SistemaPago.grpc.PaymentResponse;
 import com.SistemaPago.SistemaPago.grpc.PaymentServiceGrpcGrpc;
 import com.SistemaPago.SistemaPago.mapper.PaymentMapper;
 import com.SistemaPago.SistemaPago.model.Payment;
-import com.SistemaPago.SistemaPago.validations.CardValidator;
-import com.SistemaPago.SistemaPago.validations.Validations;
+import com.SistemaPago.SistemaPago.service.PaymentService;
 import com.google.protobuf.Timestamp;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
@@ -24,38 +23,36 @@ import java.time.ZoneId;
 import java.util.List;
 
 @GrpcService
-public class PaymentServiceImpl extends PaymentServiceGrpcGrpc.PaymentServiceGrpcImplBase {
+public class PaymentServiceGRPCServer extends PaymentServiceGrpcGrpc.PaymentServiceGrpcImplBase{
 
     @Autowired
-    private PaymentService paymentService; // Servicio que maneja la lógica de negocio para pagos
+    private PaymentService paymentService;
 
     @Autowired
-    private PaymentMapper paymentMapper; // Mapper que convierte entre DTO y entidad
+    private PaymentMapper paymentMapper;
 
     @Override
     public void registerPayment(PaymentRequest request, StreamObserver<PaymentResponse> responseObserver) {
         try {
-            // Validamos la solicitud de pago
-            Validations.validatePaymentRequest(request);
-            // Validamos el número de tarjeta
-            CardValidator.validateCardNumber(request.getCardNumber());
-
-            // Convertimos la solicitud a un DTO de pago
+            // Convertir la solicitud a un DTO de pago
             PaymentDTO paymentDTO = requestToPaymentDTO(request);
-            // Convertimos el DTO a una entidad
-            Payment payment = paymentMapper.toEntity(paymentDTO);
-            // Registramos el pago y obtenemos el DTO guardado
-            PaymentDTO savedPayment = paymentService.registerPayment(paymentMapper.toDTO(payment));
+            System.out.println("PaymentDTO: " + paymentDTO);
 
-            // Enviamos la respuesta al observador
+            // Registrar el pago utilizando el servicio
+            PaymentDTO savedPayment = paymentService.registerPayment(paymentDTO);
+
+            // Enviar la respuesta al observador
             responseObserver.onNext(paymentDtoToPaymentResponse(savedPayment));
-            // Indicamos que hemos terminado de enviar respuestas
             responseObserver.onCompleted();
         } catch (PaymentException e) {
-            // En caso de una excepción de pago, enviamos un error al observador
+            // Manejar excepciones específicas de pago
+            System.err.println("PaymentException al registrar el pago: " + e.getMessage());
+            e.printStackTrace();
             responseObserver.onError(new StatusRuntimeException(Status.INVALID_ARGUMENT.withDescription(e.getMessage())));
         } catch (Exception e) {
-            // En caso de cualquier otra excepción, enviamos un error interno
+            // Manejar cualquier otra excepción
+            System.err.println("Error general al registrar el pago: " + e.getMessage());
+            e.printStackTrace();
             responseObserver.onError(new StatusRuntimeException(Status.INTERNAL.withDescription("Error al registrar el pago.")));
         }
     }
@@ -63,45 +60,40 @@ public class PaymentServiceImpl extends PaymentServiceGrpcGrpc.PaymentServiceGrp
     @Override
     public void getAllPayments(Empty request, StreamObserver<PaymentResponse> responseObserver) {
         try {
-            // Obtenemos todos los pagos como una lista de DTOs
+            // Obtener todos los pagos
             List<PaymentDTO> paymentDTOs = paymentService.getAllPayments();
-            // Enviamos cada DTO como respuesta al observador
             paymentDTOs.forEach(paymentDTO -> responseObserver.onNext(paymentDtoToPaymentResponse(paymentDTO)));
-            // Indicamos que hemos terminado de enviar respuestas
             responseObserver.onCompleted();
-        } catch (PaymentException e) {
-            // En caso de una excepción de pago, enviamos un error interno
-            responseObserver.onError(new StatusRuntimeException(Status.INTERNAL.withDescription("Error al obtener los pagos.")));
+        } catch (Exception e) {
+            // Manejar excepciones al recuperar pagos
+            System.err.println("Error al recuperar todos los pagos: " + e.getMessage());
+            e.printStackTrace();
+            responseObserver.onError(new StatusRuntimeException(Status.INTERNAL.withDescription("Error al recuperar todos los pagos.")));
         }
     }
 
     private PaymentDTO requestToPaymentDTO(PaymentRequest request) {
-        // Creamos un nuevo DTO de pago
+        System.out.println("PaymentRequest recibido: " + request);
         PaymentDTO paymentDTO = new PaymentDTO();
-        // Asignamos el número de tarjeta desde la solicitud
         paymentDTO.setCardNumber(request.getCardNumber());
-        // Asignamos el monto desde la solicitud
         paymentDTO.setAmount(BigDecimal.valueOf(request.getAmount()));
-        // Convertimos la fecha de pago desde el formato de Protobuf a LocalDate
         Instant instant = Instant.ofEpochSecond(request.getPaymentDate().getSeconds(), request.getPaymentDate().getNanos());
         LocalDate localDate = instant.atZone(ZoneId.systemDefault()).toLocalDate();
-        paymentDTO.setPaymentDate(localDate); // Asignamos la fecha de pago
-        // Asignamos la descripción desde la solicitud
+        paymentDTO.setPaymentDate(localDate);
         paymentDTO.setDescription(request.getDescription());
-        return paymentDTO; // Devolvemos el DTO creado
+        System.out.println("PaymentDTO creado: " + paymentDTO);
+        return paymentDTO;
     }
 
     private PaymentResponse paymentDtoToPaymentResponse(PaymentDTO paymentDTO) {
-        // Convertimos la fecha de pago a un formato de Protobuf
         Instant instant = paymentDTO.getPaymentDate().atStartOfDay(ZoneId.systemDefault()).toInstant();
         Timestamp timestamp = Timestamp.newBuilder().setSeconds(instant.getEpochSecond()).setNanos(instant.getNano()).build();
 
-        // Construimos y devolvemos la respuesta de pago
         return PaymentResponse.newBuilder()
-                .setCardNumber(paymentDTO.getMaskedCardNumber()) // Asignamos el número de tarjeta enmascarado
-                .setAmount(paymentDTO.getAmount().doubleValue()) // Asignamos el monto del pago
-                .setPaymentDate(timestamp) // Asignamos la fecha de pago
-                .setDescription(paymentDTO.getDescription()) // Asignamos la descripción del pago
-                .build(); // Devolvemos la respuesta construida
+                .setCardNumber(paymentDTO.getMaskedCardNumber())
+                .setAmount(paymentDTO.getAmount().doubleValue())
+                .setPaymentDate(timestamp)
+                .setDescription(paymentDTO.getDescription())
+                .build();
     }
 }
