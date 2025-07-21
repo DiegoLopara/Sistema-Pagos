@@ -22,23 +22,23 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
 
-public class PaymentServiceTest {
+class PaymentServiceTest {
     @InjectMocks // Inyectamos el servicio que vamos a testear
-    private PaymentService paymentService;
+    PaymentService paymentService;
 
     @Mock // Creamos un mock para el repositorio
-    private PaymentRepository paymentRepository;
+    PaymentRepository paymentRepository;
 
     @Mock // Creamos un mock para el mapper
-    private PaymentMapper paymentMapper;
+    PaymentMapper paymentMapper;
 
     @BeforeEach // Se ejecuta antes de cada test
-    public void setUp() {
+    void setUp() {
         MockitoAnnotations.openMocks(this); // Inicializamos los mocks
     }
 
     @Test // Indica que este método es un test
-    public void testRegisterPaymentSuccess() {
+    void testRegisterPaymentSuccess() {
         PaymentDTO paymentDTO = createPaymentDTO(); // Creamos un DTO de prueba
         Payment payment = createPayment(); // Creamos una entidad de prueba
 
@@ -52,7 +52,7 @@ public class PaymentServiceTest {
     }
 
     @Test // Indica que este método es un test
-    public void testRegisterPaymentFailure() {
+    void testRegisterPaymentFailure() {
         PaymentDTO paymentDTO = createPaymentDTO(); // Creamos un DTO de prueba
 
         when(paymentMapper.toEntity(paymentDTO)).thenThrow(new RuntimeException("Mapper Error")); // Configuramos el mapper para lanzar una excepción
@@ -61,7 +61,7 @@ public class PaymentServiceTest {
     }
 
     @Test // Indica que este método es un test
-    public void testGetAllPaymentsSuccess() {
+    void testGetAllPaymentsSuccess() {
         List<Payment> payments = Arrays.asList(createPayment(), createPayment()); // Creamos una lista de entidades de prueba
         List<PaymentDTO> paymentDTOs = Arrays.asList(createPaymentDTO(), createPaymentDTO()); // Creamos una lista de DTOs de prueba
 
@@ -75,13 +75,13 @@ public class PaymentServiceTest {
     }
 
     @Test // Indica que este método es un test
-    public void testGetAllPaymentsFailure() {
+    void testGetAllPaymentsFailure() {
         when(paymentRepository.findAll()).thenThrow(new RuntimeException("Database error")); // Configuramos el repositorio para lanzar una excepción
 
         assertThrows(PaymentException.class, () -> paymentService.getAllPayments()); // Verificamos que se lance la excepción esperada
     }
 
-    private PaymentDTO createPaymentDTO() { // Método para crear un DTO de prueba
+    PaymentDTO createPaymentDTO() { // Método para crear un DTO de prueba
         PaymentDTO paymentDTO = new PaymentDTO();
         paymentDTO.setCardNumber("1234567812345678");
         paymentDTO.setAmount(BigDecimal.valueOf(100.00));
@@ -90,7 +90,7 @@ public class PaymentServiceTest {
         return paymentDTO;
     }
 
-    private Payment createPayment() { // Método para crear una entidad de prueba
+    Payment createPayment() { // Método para crear una entidad de prueba
         Payment payment = new Payment();
         payment.setCardNumber("1234567812345678");
         payment.setAmount(BigDecimal.valueOf(100.00));
